@@ -13,7 +13,7 @@ const [modal, setModal] = useState(false);
     const [edit,setEdit]=useState(null)
 
     useEffect(() => {
-        fetch(`${API_URL}/categories`)
+        fetch(`${API_URL}/categories`,{credentials:"include"})
             .then(response => response.json())
             .then(result => {
                 setData(result);

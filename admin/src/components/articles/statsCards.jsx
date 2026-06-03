@@ -39,9 +39,9 @@ function StatsCards() {
 
             try {
 
-                const res = await fetch(
-                    `${API_URL}/articles`
-                );
+                const res = await fetch(`${API_URL}/articles`, {
+                    credentials: "include",
+                });
 
                 const data = await res.json();
 

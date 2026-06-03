@@ -37,7 +37,7 @@ function Login() {
 
             console.log(data);
 
-            navigate("/dashboard");
+            navigate("/admin");
         } catch (err) {
             setMessage(err.message);
         }

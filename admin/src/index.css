@@ -1240,6 +1240,12 @@ textarea.form-control { min-height: 100px; }
     position: relative;
     z-index: 1;
 }
+.sidebar-link {
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+}
 
 .bar-col .bar {
     width: 100%;

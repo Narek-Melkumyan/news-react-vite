@@ -17,8 +17,12 @@ function ArticlesTable() {
         async function fetchData() {
             try {
                 const [articlesRes, categoriesRes] = await Promise.all([
-                    fetch(`${API_URL}/articles`),
-                    fetch(`${API_URL}/categories`),
+                    fetch(`${API_URL}/articles`, {
+                        credentials: "include",
+                    }),
+                    fetch(`${API_URL}/categories`, {
+                        credentials: "include",
+                    }),
                 ]);
 
                 const [articlesData, categoriesData] = await Promise.all([
@@ -48,9 +52,9 @@ function ArticlesTable() {
                 if (statusFilter) params.append("status", statusFilter);
                 if (categoryFilter) params.append("category", categoryFilter);
 
-                const res = await fetch(
-                    `${API_URL}/articles?${params.toString()}`
-                );
+                const res = await fetch(`${API_URL}/articles?${params.toString()}`, {
+                    credentials: "include",
+                });
 
                 const data = await res.json();
 
@@ -222,7 +226,7 @@ function ArticlesTable() {
 
                             <td>
                                 <div className="row-actions">
-                                    <Link to={`/editArticle/${article.id}`} className="btn-act" title="Edit">
+                                    <Link to={`/admin/editArticle/${article.id}`} className="btn-act" title="Edit">
                                         <i className="bi bi-pencil"></i>
                                     </Link>
 
@@ -270,4 +274,6 @@ function ArticlesTable() {
 }
 
 export default ArticlesTable;
+
+
 

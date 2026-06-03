@@ -1,6 +1,7 @@
 // components/PageHeaderArticle.jsx
 
 import React from 'react';
+import {Link} from "react-router-dom";
 
 function PageHeader({
                         title,
@@ -36,10 +37,10 @@ function PageHeader({
                     {" "}Export report
                 </button>
 
-                <a href="articles.html" className="btn btn-primary btn-icon">
+                <Link to={"/admin/createArticle"} href="articles.html" className="btn btn-primary btn-icon">
                     <i className="bi bi-plus-lg"></i>
                     {" "}New article
-                </a>
+                </Link>
             </div>
         </div>
     );

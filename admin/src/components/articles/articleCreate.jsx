@@ -40,9 +40,15 @@ function ArticleCreate() {
         async function fetchData() {
             try {
                 const [categoriesRes, authorsRes, slugsRes] = await Promise.all([
-                    fetch(`${API_URL}/categories`),
-                    fetch(`${API_URL}/articles/getAuthors`),
-                    fetch(`${API_URL}/articles/getSlugs`),
+                    fetch(`${API_URL}/categories`, {
+                        credentials: "include",
+                    }),
+                    fetch(`${API_URL}/articles/getAuthors`, {
+                        credentials: "include",
+                    }),
+                    fetch(`${API_URL}/articles/getSlugs`, {
+                        credentials: "include",
+                    }),
                 ]);
 
                 const [categoriesData, authorsData, slugsData] = await Promise.all([
@@ -78,7 +84,9 @@ function ArticleCreate() {
         try {
             const response = await fetch(`${API_URL}/articles`, {
                 method: "POST",
+                credentials: "include",
                 body: formData
+
             });
 
             const data = await response.json();

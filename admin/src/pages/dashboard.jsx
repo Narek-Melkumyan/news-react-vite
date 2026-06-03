@@ -1,33 +1,67 @@
-
 import PageHeader from "../components/PageHeader.jsx";
 import StatCard from "../components/StatCard.jsx";
 import ViewsChart from "../components/ViewsChart.jsx";
 import RecentActivity from "../components/RecentActivity.jsx";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 
 function Dashboard() {
     const API_URL = import.meta.env.VITE_API_URL;
 
     const [data, setData] = useState([]);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        async function fetchData() {
+        async function fetchArticles() {
             try {
+                const articlesRes = await fetch(`${API_URL}/articles`, {
+                    credentials: "include",
+                });
 
-                const articlesRes = await fetch(
-                    `${API_URL}/articles/`,
-                );
+                if (!articlesRes.ok) {
+                    throw new Error("Failed to fetch articles");
+                }
 
-                const data = await articlesRes.json();
+                const result = await articlesRes.json();
 
-                setData(data.posts);
+                const posts = Array.isArray(result)
+                    ? result
+                    : result.posts || result.articles || [];
+
+                setData(posts);
             } catch (err) {
                 console.log(err);
+                setData([]);
             }
         }
 
-        fetchData();
-    }, []);
+        fetchArticles();
+    }, [API_URL]);
+
+    useEffect(() => {
+        async function getMe() {
+            try {
+                const res = await fetch(`http://localhost:3010/auth/me`, {
+                    credentials: "include",
+                });
+
+                if (!res.ok) {
+                    throw new Error("Failed to get user");
+                }
+
+                const result = await res.json();
+
+                setUser(result.user || result);
+            } catch (err) {
+                console.log(err);
+                setUser(null);
+            }
+        }
+
+        getMe();
+    }, [API_URL]);
+
+    const fullName = user?.name || "Admin";
+    const firstName = fullName.split(" ")[0];
 
     const totalViews = data.reduce((acc, item) => {
         return acc + Number(item.views || 0);
@@ -41,8 +75,8 @@ function Dashboard() {
 
     const getStartOfWeek = () => {
         const now = new Date();
-        const day = now.getDay(); // Sunday = 0, Monday = 1
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
 
         const monday = new Date(now.setDate(diff));
         monday.setHours(0, 0, 0, 0);
@@ -50,10 +84,12 @@ function Dashboard() {
         return monday;
     };
 
+    const startOfWeek = getStartOfWeek();
+
     const weekViews = data.reduce((acc, item) => {
         const postDate = new Date(item.published_at || item.created_at);
 
-        if (postDate >= getStartOfWeek()) {
+        if (postDate >= startOfWeek) {
             return acc + Number(item.views || 0);
         }
 
@@ -76,13 +112,12 @@ function Dashboard() {
             color: "success",
             text: (
                 <>
-                    <strong>Sarah Johnson</strong> published{" "}
+                    <strong>{fullName}</strong> published{" "}
                     <strong>"Global markets rally..."</strong>
                 </>
             ),
             time: "12 min ago",
         },
-
         {
             icon: "bi-chat-dots",
             color: "brand",
@@ -97,16 +132,14 @@ function Dashboard() {
 
     return (
         <div className="page">
-
             <PageHeader
                 breadcrumb="Dashboard"
                 title="Good morning"
-                userName="Sarah"
+                userName={firstName}
                 subtitle="Here's what's happening across your newsroom today."
             />
 
             <div className="row g-3 mb-4">
-
                 <div className="col-12 col-sm-6 col-xl-3">
                     <StatCard
                         icon="bi-file-text"
@@ -130,11 +163,9 @@ function Dashboard() {
                         footer={`${formatViews(weekViews)} this week`}
                     />
                 </div>
-
             </div>
 
             <div className="row g-3">
-
                 <div className="col-12 col-xl-8">
                     <ViewsChart data={viewsData} />
                 </div>
@@ -142,9 +173,7 @@ function Dashboard() {
                 <div className="col-12 col-xl-4">
                     <RecentActivity data={activityData} />
                 </div>
-
             </div>
-
         </div>
     );
 }

@@ -46,8 +46,12 @@ function EditArticle() {
         async function fetchData() {
             try {
                 const [categoriesRes, authorsRes] = await Promise.all([
-                    fetch(`${API_URL}/categories`),
-                    fetch(`${API_URL}/articles/getAuthors`),
+                    fetch(`${API_URL}/categories`, {
+                        credentials: "include",
+                    }),
+                    fetch(`${API_URL}/articles/getAuthors`, {
+                        credentials: "include",
+                    }),
                 ]);
 
                 const [categoriesData, authorsData] = await Promise.all([
@@ -73,7 +77,9 @@ function EditArticle() {
     useEffect(() => {
         async function getArticle() {
             try {
-                const response = await fetch(`${API_URL}/articles/${id}`);
+                const response = await fetch(`${API_URL}/articles/${id}`,{
+                    credentials: "include",
+                });
                 const data = await response.json();
 
                 const article = data.article || data;
@@ -132,6 +138,7 @@ function EditArticle() {
         try {
             const response = await fetch(`${API_URL}/articles/${id}`, {
                 method: "PUT",
+                credentials: "include",
                 body: formData,
             });
 
@@ -159,6 +166,7 @@ function EditArticle() {
 
             const response = await fetch(`${API_URL}/articles/generateByIA`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -223,7 +231,7 @@ function EditArticle() {
 
                 <div className="d-flex gap-2 flex-wrap">
                     <Link
-                        to="/articles"
+                        to="/admin/articles"
                         className="btn btn-light btn-icon"
                     >
                         <i className="bi bi-x-lg"></i>

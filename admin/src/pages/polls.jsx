@@ -10,7 +10,9 @@ function Polls() {
     const [polls, setPolls] = useState(null);
 
     useEffect(() => {
-        fetch("http://localhost:3010/admin/polls/getPolls").then(res => res.json()).then(data => {
+        fetch("http://localhost:3010/admin/polls/getPolls",{
+            credentials: "include",
+        }).then(res => res.json()).then(data => {
             setPolls(data.polls);
         })
     },[])

@@ -34,7 +34,7 @@ function PageHeaderArticle() {
                     <i className="bi bi-download"></i> Export
                 </button>
 
-                <Link to={'/createArticle'}
+                <Link to={'/admin/createArticle'}
                     className="btn btn-primary btn-icon"
                 >
                     <i className="bi bi-plus-lg"></i> New Article

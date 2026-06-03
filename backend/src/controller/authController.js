@@ -2,86 +2,59 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import db from "../../config/db.js";
 
-const createAccessToken = (user) => {
-    return jwt.sign(
-        {
-            id: user.id,
-            email: user.email,
-        },
+const COOKIE_NAME = "admin_token";
+
+const cookieOptions = {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+};
+
+const signToken = (user) =>
+    jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
         process.env.JWT_SECRET,
-        {
-            expiresIn: "15m",
-        }
+        { expiresIn: "1d" }
     );
-};
 
-const createRefreshToken = (user) => {
-    return jwt.sign(
-        {
-            id: user.id,
-            email: user.email,
-        },
-        process.env.JWT_REFRESH_SECRET,
-        {
-            expiresIn: "7d",
-        }
-    );
-};
-
-const setAccessTokenCookie = (res, accessToken) => {
-    res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: false,
-        maxAge: 15 * 60 * 1000,
-    });
-};
-
-const setRefreshTokenCookie = (res, refreshToken) => {
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+const setAuthCookie = (res, token) => {
+    res.cookie(COOKIE_NAME, token, {
+        ...cookieOptions,
+        maxAge: 24 * 60 * 60 * 1000,
     });
 };
 
 export const register = async (req, res) => {
     try {
-        const { name, email, password , role , status } = req.body;
-        console.log(name, email, password, role, status);
+        const { name, email, password } = req.body;
+
         if (!name || !email || !password) {
-            return res.status(400).json({
-                message: "All fields are required",
-            });
+            return res.status(400).json({ message: "Name, email and password are required" });
         }
 
-        const [existingUsers] = await db.query(
+        const [existing] = await db.query(
             "SELECT id FROM users WHERE email = ?",
             [email]
         );
 
-        if (existingUsers.length > 0) {
-            return res.status(409).json({
-                message: "Email already exists",
-            });
+        if (existing.length > 0) {
+            return res.status(409).json({ message: "Email already exists" });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashed = await bcrypt.hash(password, 10);
 
-        await db.query(
-            "INSERT INTO users (name, email,password,role,status) VALUES (?, ?, ?,?,?)",
-            [name, email, hashedPassword, role, status],
+        const [result] = await db.query(
+            "INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)",
+            [name, email, hashed, "admin", "active"]
         );
 
-        res.status(201).json({
-            message: "User registered successfully",
-        });
+        const user = { id: result.insertId, name, email, role: "admin" };
+        const token = signToken(user);
+
+        setAuthCookie(res, token);
+        res.status(201).json({ user });
     } catch (err) {
-        res.status(500).json({
-            message: "Register failed",
-            error: err.message,
-        });
+        res.status(500).json({ message: "Register failed", error: err.message });
     }
 };
 
@@ -90,163 +63,59 @@ export const login = async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({
-                message: "Email and password are required",
-            });
+            return res.status(400).json({ message: "Invalid email or password" });
         }
 
-        const [users] = await db.query(
-            "SELECT * FROM users WHERE email = ?",
+        const [rows] = await db.query(
+            "SELECT id, name, email, password, role FROM users WHERE email = ?",
             [email]
         );
 
-        if (users.length === 0) {
-            return res.status(401).json({
-                message: "Invalid email or password",
-            });
+        if (rows.length === 0) {
+            return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        const user = users[0];
+        const user = rows[0];
+        const ok = await bcrypt.compare(password, user.password);
 
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordCorrect) {
-            return res.status(401).json({
-                message: "Invalid email or password",
-            });
+        if (!ok) {
+            return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        const accessToken = createAccessToken(user);
-        const refreshToken = createRefreshToken(user);
+        const token = signToken(user);
+        setAuthCookie(res, token);
 
-        await db.query(
-            "INSERT INTO user_tokens (user_id, refresh_token) VALUES (?, ?)",
-            [user.id, refreshToken]
-        );
-
-        setAccessTokenCookie(res, accessToken);
-        setRefreshTokenCookie(res, refreshToken);
-
-        console.log('hii')
         res.json({
-            message: "Login successful",
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                role: user.role,
             },
         });
     } catch (err) {
-        res.status(500).json({
-            message: "Login failed",
-            error: err.message,
-        });
-    }
-};
-
-export const refresh = async (req, res) => {
-    try {
-        const refreshToken = req.cookies.refreshToken;
-
-        if (!refreshToken) {
-            return res.status(401).json({
-                message: "Refresh token missing",
-            });
-        }
-
-        const [savedTokens] = await db.query(
-            "SELECT * FROM user_tokens WHERE refresh_token = ?",
-            [refreshToken]
-        );
-
-        if (savedTokens.length === 0) {
-            return res.status(403).json({
-                message: "Refresh token not found",
-            });
-        }
-
-        const decoded = jwt.verify(
-            refreshToken,
-            process.env.JWT_REFRESH_SECRET
-        );
-
-        const accessToken = jwt.sign(
-            {
-                id: decoded.id,
-                email: decoded.email,
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "15m",
-            }
-        );
-
-        setAccessTokenCookie(res, accessToken);
-
-        res.json({
-            message: "Access token refreshed",
-        });
-    } catch (err) {
-        res.status(403).json({
-            message: "Invalid refresh token",
-        });
+        res.status(500).json({ message: "Login failed", error: err.message });
     }
 };
 
 export const me = async (req, res) => {
     try {
-        const [users] = await db.query(
-            "SELECT id, name, email, created_at FROM users WHERE id = ?",
+        const [rows] = await db.query(
+            "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
             [req.user.id]
         );
 
-        if (users.length === 0) {
-            return res.status(404).json({
-                message: "User not found",
-            });
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({
-            user: users[0],
-        });
+        res.json({ user: rows[0] });
     } catch (err) {
-        res.status(500).json({
-            message: "Failed to get user",
-            error: err.message,
-        });
+        res.status(500).json({ message: "Failed to load user", error: err.message });
     }
 };
 
-export const logout = async (req, res) => {
-    try {
-        const refreshToken = req.cookies.refreshToken;
-
-        if (refreshToken) {
-            await db.query(
-                "DELETE FROM user_tokens WHERE refresh_token = ?",
-                [refreshToken]
-            );
-        }
-
-        res.clearCookie("accessToken", {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: false,
-        });
-
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: false,
-        });
-
-        res.json({
-            message: "Logout successful",
-        });
-    } catch (err) {
-        res.status(500).json({
-            message: "Logout failed",
-            error: err.message,
-        });
-    }
+export const logout = (req, res) => {
+    res.clearCookie(COOKIE_NAME, cookieOptions);
+    res.json({ message: "Logged out" });
 };
