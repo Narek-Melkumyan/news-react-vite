@@ -201,14 +201,6 @@ function ArticleCreate() {
                         Cancel
                     </a>
 
-                    <button
-                        type="button"
-                        className="btn btn-soft-primary btn-icon"
-                        disabled={!!slugError}
-                    >
-                        <i className="bi bi-cloud-arrow-up"></i>
-                        Save draft
-                    </button>
 
                     <button
                         type="submit"

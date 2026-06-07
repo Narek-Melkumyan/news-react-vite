@@ -32,10 +32,6 @@ function PageHeader({
             </div>
 
             <div className="d-flex gap-2">
-                <button className="btn btn-light btn-icon">
-                    <i className="bi bi-download"></i>
-                    {" "}Export report
-                </button>
 
                 <Link to={"/admin/createArticle"} href="articles.html" className="btn btn-primary btn-icon">
                     <i className="bi bi-plus-lg"></i>

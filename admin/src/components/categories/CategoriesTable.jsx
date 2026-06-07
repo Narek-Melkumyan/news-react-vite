@@ -35,7 +35,6 @@ function CategoriesTable({data,setEdit,onOpen}) {
     function editCategory(val) {
         setEdit(val)
         onOpen(true);
-
     }
 
 

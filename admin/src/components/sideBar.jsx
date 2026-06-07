@@ -123,11 +123,6 @@ function SideBar() {
                         <span>Polls</span>
                     </NavLink>
 
-                    <a href="comments.html" className="sidebar-link">
-                        <i className="bi bi-chat-left-text"></i>
-                        <span>Comments</span>
-                        <span className="badge bg-warning text-dark">3</span>
-                    </a>
 
                     <div className="sidebar-section">Audience</div>
 

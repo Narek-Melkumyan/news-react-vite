@@ -45,13 +45,7 @@ function Header() {
                     <i className="bi bi-list"></i>
                 </button>
 
-                <div className="topbar-search">
-                    <i className="bi bi-search"></i>
-                    <input
-                        type="text"
-                        placeholder="Search articles, authors, comments..."
-                    />
-                </div>
+
 
                 <div className="topbar-actions">
                     <button className="icon-btn" title="Help">

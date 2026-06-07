@@ -238,13 +238,6 @@ function EditArticle() {
                         Cancel
                     </Link>
 
-                    <button
-                        type="button"
-                        className="btn btn-soft-primary btn-icon"
-                    >
-                        <i className="bi bi-cloud-arrow-up"></i>
-                        Save draft
-                    </button>
 
                     <button
                         type="submit"
