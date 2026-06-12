@@ -2,6 +2,7 @@ import CardV1 from "./cardV1.jsx";
 import CardV2 from "./cardV2.jsx";
 import CardV3 from "./cardV3.jsx";
 import CardV4 from "./cardV4.jsx";
+import CardV5 from "./cardV5.jsx";
 
 
 function CardIndex({value, variant = 'v1'}) {
@@ -17,6 +18,8 @@ function CardIndex({value, variant = 'v1'}) {
         return <CardV3 slug={value.slug} title={value.title} image={value.image} created_at={value.created_at}/>
     }else if(variant === 'v4') {
         return <CardV4 id={value.id} title={value.title} image={value.image} created_at={value.created_at} />
+    }else if(variant === 'v5') {
+            return (<CardV5 link={value.link} title={value.title} image={value.image} description={value.description} source={value.source} pubDate={value.pubDate}/>);
     }
     else {
         return <p>Wrong variant</p>

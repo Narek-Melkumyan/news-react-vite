@@ -509,3 +509,57 @@ export const getAllArticlesByCategoryId = async (req, res) => {
     }
 };
 
+export const searchArticles = async (req, res) => {
+    try {
+        const search = req.query.q?.trim();
+
+        if (!search) {
+            return res.status(400).json({
+                message: "Search text is required",
+                articles: []
+            });
+        }
+
+        const searchValue = `%${search}%`;
+
+        const [articles] = await db.query(
+            `
+            SELECT
+                p.id,
+                p.title,
+                p.slug,
+                p.short_description,
+                p.image,
+                p.views,
+                p.created_at,
+                c.name AS category_name,
+                c.slug AS category_slug
+            FROM posts p
+            LEFT JOIN categories c
+                ON p.category_id = c.id
+            WHERE p.status = 'published'
+              AND (
+                    p.title LIKE ?
+                    OR p.short_description LIKE ?
+                    OR p.content LIKE ?
+              )
+            ORDER BY p.created_at DESC
+            LIMIT 20
+            `,
+            [searchValue, searchValue, searchValue]
+        );
+
+        res.json({
+            search,
+            count: articles.length,
+            articles
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({
+            message: "Server error"
+        });
+    }
+};

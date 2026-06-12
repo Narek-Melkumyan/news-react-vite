@@ -149,7 +149,7 @@ function EditArticle() {
                 throw new Error(data.message || "Update failed");
             }
 
-            navigate("/articles");
+            navigate("/admin/articles");
         } catch (e) {
             console.log(e);
         }

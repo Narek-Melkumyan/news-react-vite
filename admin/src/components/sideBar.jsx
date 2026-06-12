@@ -133,11 +133,6 @@ function SideBar() {
 
                     <div className="sidebar-section">System</div>
 
-                    <a href="settings.html" className="sidebar-link">
-                        <i className="bi bi-gear"></i>
-                        <span>Settings</span>
-                    </a>
-
                     <button
                         type="button"
                         className="sidebar-link"

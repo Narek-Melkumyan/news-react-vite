@@ -5,9 +5,10 @@ import {
     getArticleBySlug,
     getDailyQuotes, getInternational, getVideoById, getVideos, homePage,
     mainIndex, mostRead,
-    pool, regionsAndInterviews,
+    pool, regionsAndInterviews, searchArticles,
     votes
 } from "../controller/mainController.js";
+import {Home} from "../controller/rssController.js";
 
 const main = Router();
 
@@ -24,8 +25,8 @@ main.post("/vote", votes);
 main.get("/getArticle/:slug", getArticleBySlug);
 main.get("/getVideo/:id", getVideoById);
 main.get("/getAllArticlesById/:id",getAllArticlesByCategoryId)
-
-
+main.get("/rss",Home)
+main.get("/search",searchArticles)
 
 
 

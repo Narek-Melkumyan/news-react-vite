@@ -36,6 +36,7 @@ function Form({edit, onOpen}) {
                     headers: {
                         "Content-Type": "application/json",
                     },
+                    credentials: "include",
                     body: JSON.stringify({
                         category: data
                     }),
@@ -66,6 +67,7 @@ function Form({edit, onOpen}) {
                     headers: {
                         "Content-Type": "application/json",
                     },
+                    credentials: "include",
 
                     body: JSON.stringify({
                         name: nameRef.current.value,

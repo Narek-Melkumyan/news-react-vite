@@ -2,6 +2,8 @@ import {NavLink} from "react-router-dom";
 import {useEffect, useState} from "react";
 import CardIndex from "./cards/cardIndex.jsx";
 import {Link} from "react-router";
+import WeatherForecast from "./weatherForecast.jsx";
+import Search from "./search.jsx";
 
 function Header() {
     const [data, setData] = useState({
@@ -25,6 +27,12 @@ function Header() {
 
     return (
         <header>
+
+            <div className="container-fluid px-lg-4 py-2">
+                <WeatherForecast/>
+            </div>
+
+
             <div className="topbar py-3">
                 <div className="container-fluid px-lg-4">
                     <div className="row align-items-center g-3">
@@ -85,15 +93,17 @@ function Header() {
                                 })
                             }
 
+                            <li className="nav-item">
+                                <NavLink to="/sources"
+                                         className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+                                >Partner Sources</NavLink>
+                            </li>
+
                         </ul>
 
-                        <form className="d-flex py-2 py-lg-0">
-                            <input
-                                className="search-input"
-                                type="search"
-                                placeholder="Search..."
-                            />
-                        </form>
+                        <div className="py-2 py-lg-0">
+                            <Search/>
+                        </div>
 
                     </div>
                 </div>
@@ -103,3 +113,4 @@ function Header() {
 }
 
 export default Header;
+

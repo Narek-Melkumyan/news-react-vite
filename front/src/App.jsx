@@ -5,6 +5,7 @@ import Home from "./pages/home.jsx";
 import Catalog from "./pages/catalog.jsx";
 import Details from "./pages/details.jsx";
 import Videos from "./pages/videos.jsx";
+import ExternalNews from "./pages/externalNews.jsx";
 
 
 function App() {
@@ -29,6 +30,10 @@ function App() {
         {
           path:'/video/:id',
           element:<Videos/>
+        },
+        {
+          path:'/sources',
+          element:<ExternalNews/>
         }
       ]
     }
