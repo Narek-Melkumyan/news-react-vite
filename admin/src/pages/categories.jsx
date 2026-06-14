@@ -13,16 +13,44 @@ const [modal, setModal] = useState(false);
     const [edit,setEdit]=useState(null)
 
     useEffect(() => {
-        fetch(`${API_URL}/categories`,{credentials:"include"})
-            .then(response => response.json())
-            .then(result => {
-                setData(result);
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    }, [data]);
+        async function fetchCategories() {
+            try {
+                const accessToken =
+                    localStorage.getItem("accessToken") ||
+                    sessionStorage.getItem("accessToken");
 
+                const response = await fetch(
+                    `${API_URL}/categories`,
+                    {
+                        method: "GET",
+                        credentials: "include",
+                        headers: accessToken
+                            ? {
+                                Authorization: `Bearer ${accessToken}`,
+                            }
+                            : {},
+                    }
+                );
+
+                const result = await response
+                    .json()
+                    .catch(() => []);
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.message ||
+                        "Failed to fetch categories"
+                    );
+                }
+
+                setData(result);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        fetchCategories();
+    }, [API_URL]);
 
     return (
         <div className="page">

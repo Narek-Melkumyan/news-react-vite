@@ -4,6 +4,10 @@ import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
 function EditArticle() {
+    const getAccessToken = () =>
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
+
     const API_URL = import.meta.env.VITE_API_URL;
     const { id } = useParams();
     const navigate = useNavigate();
@@ -45,13 +49,18 @@ function EditArticle() {
     useEffect(() => {
         async function fetchData() {
             try {
+                const accessToken = getAccessToken();
+
+                const requestOptions = {
+                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                };
+
                 const [categoriesRes, authorsRes] = await Promise.all([
-                    fetch(`${API_URL}/categories`, {
-                        credentials: "include",
-                    }),
-                    fetch(`${API_URL}/articles/getAuthors`, {
-                        credentials: "include",
-                    }),
+                    fetch(`${API_URL}/categories`, requestOptions),
+                    fetch(`${API_URL}/articles/getAuthors`, requestOptions),
                 ]);
 
                 const [categoriesData, authorsData] = await Promise.all([
@@ -59,16 +68,27 @@ function EditArticle() {
                     authorsRes.json(),
                 ]);
 
+                if (!categoriesRes.ok) {
+                    throw new Error(
+                        categoriesData.message || "Failed to load categories"
+                    );
+                }
+
+                if (!authorsRes.ok) {
+                    throw new Error(
+                        authorsData.message || "Failed to load authors"
+                    );
+                }
+
                 setCategories(categoriesData || []);
                 setAuthors(authorsData.authors || []);
             } catch (err) {
-                console.log(err);
+                console.error(err);
             }
         }
 
         fetchData();
     }, []);
-
     const formatDateForInput = (dateValue) => {
         if (!dateValue) return "";
         return String(dateValue).slice(0, 10);
@@ -77,10 +97,25 @@ function EditArticle() {
     useEffect(() => {
         async function getArticle() {
             try {
-                const response = await fetch(`${API_URL}/articles/${id}`,{
-                    credentials: "include",
-                });
-                const data = await response.json();
+                const accessToken = getAccessToken();
+
+                const response = await fetch(
+                    `${API_URL}/articles/${id}`,
+                    {
+                        credentials: "include",
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "Failed to load article"
+                    );
+                }
 
                 const article = data.article || data;
 
@@ -88,35 +123,35 @@ function EditArticle() {
                 setSlug(article.slug || "");
                 setShortDesc(article.short_description || "");
                 setBody(article.content || "");
-
                 setStatus(article.status || "draft");
-
                 setPublishDate(
                     formatDateForInput(article.published_at)
                 );
-
                 setCategory(article.category_id || "");
                 setAuthor(article.author_id || "");
-
                 setFeatured(Boolean(article.is_featured));
                 setBreaking(Boolean(article.is_breaking));
-
                 setOldThumbnail(article.image || "");
                 setVideoUrl(article.video_url || "");
+
+                setAltText(article.alt_text || "");
+                setCaption(article.caption || "");
+                setSeoTitle(article.seo_title || "");
+                setSeoDescription(article.seo_description || "");
+                setSeoKey(article.seo_keywords || "");
             } catch (err) {
-                console.log(err);
+                console.error(err);
             }
         }
 
         if (id) {
             getArticle();
         }
-    }, [id]);
-
+    }, [API_URL, id]);
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const formData = new FormData(e.target);
+        const formData = new FormData(e.currentTarget);
 
         formData.set("body", body);
         formData.set("title", title);
@@ -136,25 +171,33 @@ function EditArticle() {
         formData.set("seoKey", seoKey);
 
         try {
-            const response = await fetch(`${API_URL}/articles/${id}`, {
-                method: "PUT",
-                credentials: "include",
-                body: formData,
-            });
+            const accessToken = getAccessToken();
 
-            const data = await response.json();
-            console.log("Updated:", data);
+            const response = await fetch(
+                `${API_URL}/articles/${id}`,
+                {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data.message || "Update failed");
+                throw new Error(
+                    data.message || "Update failed"
+                );
             }
 
             navigate("/admin/articles");
-        } catch (e) {
-            console.log(e);
+        } catch (error) {
+            console.error(error);
         }
     }
-
     async function handleGenerateAI() {
         if (!title || !shortDesc) {
             console.log("Please write title and short description first");

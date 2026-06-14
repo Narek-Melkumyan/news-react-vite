@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
 function PollsModal({ close, poll, onSuccess }) {
+    const accessToken =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
     const [question, setQuestion] = useState("");
     const [options, setOptions] = useState(["", ""]);
     const [startDate, setStartDate] = useState("");
@@ -84,7 +87,7 @@ function PollsModal({ close, poll, onSuccess }) {
             .filter((option) => option !== "");
 
         if (!question.trim()) {
-            console.log("Գրիր poll question-ը");
+            console.log("Write poll question");
             return;
         }
 
@@ -110,16 +113,23 @@ function PollsModal({ close, poll, onSuccess }) {
         try {
             setLoading(true);
 
+            const accessToken =
+                localStorage.getItem("accessToken") ||
+                sessionStorage.getItem("accessToken");
+
             const res = await fetch(url, {
                 method,
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(accessToken && {
+                        Authorization: `Bearer ${accessToken}`,
+                    }),
                 },
                 body: JSON.stringify(pollData),
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
                 throw new Error(
@@ -135,7 +145,6 @@ function PollsModal({ close, poll, onSuccess }) {
             setLoading(false);
         }
     };
-
     return (
         <>
             <div
@@ -340,3 +349,4 @@ function PollsModal({ close, poll, onSuccess }) {
 }
 
 export default PollsModal;
+

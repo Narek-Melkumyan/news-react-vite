@@ -4,6 +4,10 @@ import {Link} from "react-router-dom";
 
 
 function ArticlesTable() {
+    const getAccessToken = () =>
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
+
     const API_URL = import.meta.env.VITE_API_URL;
     const [articles, setArticles] = useState([]);
     const [search, setSearch] = useState("");
@@ -16,13 +20,18 @@ function ArticlesTable() {
     useEffect(() => {
         async function fetchData() {
             try {
+                const accessToken = getAccessToken();
+
+                const requestOptions = {
+                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                };
+
                 const [articlesRes, categoriesRes] = await Promise.all([
-                    fetch(`${API_URL}/articles`, {
-                        credentials: "include",
-                    }),
-                    fetch(`${API_URL}/categories`, {
-                        credentials: "include",
-                    }),
+                    fetch(`${API_URL}/articles`, requestOptions),
+                    fetch(`${API_URL}/categories`, requestOptions),
                 ]);
 
                 const [articlesData, categoriesData] = await Promise.all([
@@ -30,10 +39,22 @@ function ArticlesTable() {
                     categoriesRes.json(),
                 ]);
 
+                if (!articlesRes.ok) {
+                    throw new Error(
+                        articlesData.message || "Failed to fetch articles"
+                    );
+                }
+
+                if (!categoriesRes.ok) {
+                    throw new Error(
+                        categoriesData.message || "Failed to fetch categories"
+                    );
+                }
+
                 setArticles(articlesData.posts || []);
                 setCategories(categoriesData || []);
             } catch (err) {
-                console.log(err);
+                console.error(err);
             }
         }
 
@@ -42,49 +63,99 @@ function ArticlesTable() {
 
 
 
-
     useEffect(() => {
         async function fetchArticles() {
             try {
+                const accessToken = getAccessToken();
+
                 const params = new URLSearchParams();
 
-                if (search) params.append("search", search);
-                if (statusFilter) params.append("status", statusFilter);
-                if (categoryFilter) params.append("category", categoryFilter);
+                if (search) {
+                    params.append("search", search);
+                }
 
-                const res = await fetch(`${API_URL}/articles?${params.toString()}`, {
-                    credentials: "include",
-                });
+                if (statusFilter) {
+                    params.append("status", statusFilter);
+                }
 
-                const data = await res.json();
+                if (categoryFilter) {
+                    params.append("category", categoryFilter);
+                }
+
+                const query = params.toString();
+
+                const res = await fetch(
+                    `${API_URL}/articles${query ? `?${query}` : ""}`,
+                    {
+                        method: "GET",
+                        credentials: "include",
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    throw new Error(
+                        data.message || "Failed to fetch articles"
+                    );
+                }
 
                 setArticles(data.posts || []);
             } catch (err) {
-                console.log(err);
+                console.error(err);
             }
         }
 
         fetchArticles();
-    }, [search, statusFilter, categoryFilter]);
+    }, [
+        search,
+        statusFilter,
+        categoryFilter,
+    ]);
 
+    async function deleteArticle(id) {
+        try {
+            const confirmed = window.confirm(
+                "Are you sure you want to delete this article?"
+            );
 
-  async function deleteArticle(id){
-      try {
-          const response = await fetch(`${API_URL}/articles/${id}`, {
-              method: "DELETE",
-          });
-          setArticles((prevArticles) =>
-              prevArticles.filter((article) => article.id !== id)
-          );
-          const data = await response.json();
+            if (!confirmed) {
+                return;
+            }
 
-          console.log(data);
+            const accessToken = getAccessToken();
 
-      } catch (error) {
-          console.log(error);
-      }
-   }
+            const response = await fetch(
+                `${API_URL}/articles/${id}`,
+                {
+                    method: "DELETE",
+                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
 
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "Failed to delete article"
+                );
+            }
+
+            setArticles((previousArticles) =>
+                previousArticles.filter(
+                    (article) => article.id !== id
+                )
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
 
     return (

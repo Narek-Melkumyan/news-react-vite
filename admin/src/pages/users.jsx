@@ -4,14 +4,24 @@ import UserCard from "../components/userCard.jsx";
 import UsersStatCard from "../components/usersStatCard.jsx";
 
 function Users() {
-
+    const accessToken =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
     const [modal, setModal] = useState(false);
     const [userData, setUserData] = useState([]);
     async function getUsers() {
         try {
-            const res = await fetch("http://localhost:3010/admin/users/getUsers", {
-                credentials: "include",
-            });
+            const res = await fetch(
+                "http://localhost:3010/admin/users/getUsers",
+                {
+                    credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
+                }
+            );
 
             const data = await res.json();
 

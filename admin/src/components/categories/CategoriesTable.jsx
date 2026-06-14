@@ -1,6 +1,9 @@
 
 
 function CategoriesTable({data,setEdit,onOpen}) {
+    const accessToken =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
     const API_URL = import.meta.env.VITE_API_URL;
 
     async function deleteCategory(id) {
@@ -10,7 +13,13 @@ function CategoriesTable({data,setEdit,onOpen}) {
             const res = await fetch(
                 `${API_URL}/categories/${id}`,
                 {
-                    method: "DELETE"
+                    method: "DELETE",
+                    credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
                 }
             );
             if (data.success) {

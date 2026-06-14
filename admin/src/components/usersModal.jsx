@@ -1,15 +1,37 @@
 function UsersModal({ close,refreshUsers }) {
     async function register(e) {
         e.preventDefault();
+
         try {
-            const formData = new FormData(e.target);
+            const formData = new FormData(e.currentTarget);
+
+            const name = formData.get("name")?.trim();
+            const email = formData.get("email")?.trim();
+            const password = formData.get("password");
+            const role = formData.get("role");
+            const status = formData.get("status");
+
+            const accessToken =
+                localStorage.getItem("accessToken") ||
+                sessionStorage.getItem("accessToken");
+
             const res = await fetch("http://localhost:3010/auth/register", {
                 method: "POST",
                 credentials: "include",
-                body: formData,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password,
+                    role,
+                    status,
+                }),
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
                 throw new Error(data.message || "Register failed");
@@ -21,7 +43,6 @@ function UsersModal({ close,refreshUsers }) {
             console.log(err.message);
         }
     }
-
     return (
         <div className="modal fade show" id="usrModal" tabIndex="-1" style={{ display: "block" }} aria-modal="true" role="dialog">
             <div className="modal-dialog modal-dialog-centered">

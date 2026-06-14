@@ -1,60 +1,88 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import db from "../../config/db.js";
+import {createUser, findUserByEmail, findUserById} from "../models/userModel.js";
+import {generateAccessToken, generateRefreshToken} from "../utils/generateTokens.js";
+import {hashToken} from "../utils/hashToken.js";
+import {findRefreshToken, revokeToken, saveRefreshToken} from "../models/refreshTokenModel.js";
 
 const COOKIE_NAME = "admin_token";
 
 const cookieOptions = {
     httpOnly: true,
+    secure: false,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-};
-
-const signToken = (user) =>
-    jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-    );
-
-const setAuthCookie = (res, token) => {
-    res.cookie(COOKIE_NAME, token, {
-        ...cookieOptions,
-        maxAge: 24 * 60 * 60 * 1000,
-    });
 };
 
 export const register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const {
+            name,
+            email,
+            password,
+            role = "author",
+            status = "active",
+        } = req.body;
 
         if (!name || !email || !password) {
-            return res.status(400).json({ message: "Name, email and password are required" });
+            return res.status(400).json({
+                message: "Name, email and password are required",
+            });
         }
 
-        const [existing] = await db.query(
-            "SELECT id FROM users WHERE email = ?",
-            [email]
-        );
-
-        if (existing.length > 0) {
-            return res.status(409).json({ message: "Email already exists" });
+        if (password.length < 8) {
+            return res.status(400).json({
+                message: "Password must be at least 8 characters",
+            });
         }
 
-        const hashed = await bcrypt.hash(password, 10);
+        const allowedRoles = ["admin", "editor", "author"];
+        const allowedStatuses = ["active", "inactive"];
 
-        const [result] = await db.query(
-            "INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)",
-            [name, email, hashed, "admin", "active"]
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({
+                message: "Invalid role",
+            });
+        }
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: "Invalid status",
+            });
+        }
+
+        const existing = await findUserByEmail(email);
+
+        if (existing) {
+            return res.status(409).json({
+                message: "Email already exists",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const userId = await createUser(
+            name,
+            email,
+            hashedPassword,
+            role,
+            status
         );
 
-        const user = { id: result.insertId, name, email, role: "admin" };
-        const token = signToken(user);
-
-        setAuthCookie(res, token);
-        res.status(201).json({ user });
+        return res.status(201).json({
+            message: "User created successfully",
+            user: {
+                id: userId,
+                name,
+                email,
+                role,
+                status,
+            },
+        });
     } catch (err) {
-        res.status(500).json({ message: "Register failed", error: err.message });
+        return res.status(500).json({
+            message: err.message,
+        });
     }
 };
 
@@ -62,60 +90,78 @@ export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ message: "Invalid email or password" });
-        }
+        const user = await findUserByEmail(email);
+        if (!user) return res.status(400).json({ message: "Invalid email" });
 
-        const [rows] = await db.query(
-            "SELECT id, name, email, password, role FROM users WHERE email = ?",
-            [email]
-        );
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(400).json({ message: "Wrong password" });
 
-        if (rows.length === 0) {
-            return res.status(401).json({ message: "Invalid email or password" });
-        }
+        const payload = { id: user.id, email: user.email };
 
-        const user = rows[0];
-        const ok = await bcrypt.compare(password, user.password);
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
 
-        if (!ok) {
-            return res.status(401).json({ message: "Invalid email or password" });
-        }
+        const hashed = await hashToken(refreshToken);
 
-        const token = signToken(user);
-        setAuthCookie(res, token);
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        await saveRefreshToken(user.id, hashed, expiresAt);
+
+        res.cookie("refresh_token", refreshToken, cookieOptions);
 
         res.json({
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-            },
+            user: { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status },
+            accessToken,
         });
     } catch (err) {
-        res.status(500).json({ message: "Login failed", error: err.message });
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+export const refresh = async (req, res) => {
+    try {
+        const token = req.cookies.refresh_token;
+        if (!token) return res.status(401).json({ message: "No refresh token" });
+
+        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+        const hashed = await hashToken(token);
+        const stored = await findRefreshToken(hashed);
+
+        if (!stored || stored.revoked_at) {
+            return res.status(401).json({message: "Invalid refresh token"});
+        }
+        if (new Date(stored.expires_at) < new Date()) {
+            return res.status(401).json({message: "Expired refresh token"});
+        }
+        const user = await findUserById(decoded.id);
+
+        const accessToken = generateAccessToken(user);
+
+        res.json({ accessToken, user });
+    } catch (err) {
+        res.status(401).json({ message: "Refresh failed" });
+    }
+};
+
+export const logout = async (req, res) => {
+    try {
+        const token = req.cookies.refresh_token;
+        if (token) {
+            const hashed = await hashToken(token);
+            await revokeToken(hashed);
+        }
+
+        res.clearCookie("refresh_token");
+        res.json({ message: "Logged out" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
 export const me = async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
-            [req.user.id]
-        );
-
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json({ user: rows[0] });
-    } catch (err) {
-        res.status(500).json({ message: "Failed to load user", error: err.message });
-    }
+    const user = await findUserById(req.user.id);
+    res.json(user);
 };
-
-export const logout = (req, res) => {
-    res.clearCookie(COOKIE_NAME, cookieOptions);
-    res.json({ message: "Logged out" });
-};
+;

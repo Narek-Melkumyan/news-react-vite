@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import {apiFetch} from "../utils/apiFetch.js";
 
 function Header() {
     const API_URL = import.meta.env.VITE_API_URL;
@@ -8,8 +9,8 @@ function Header() {
     useEffect(() => {
         async function getMe() {
             try {
-                const res = await fetch(`http://localhost:3010/auth/me`, {
-                    credentials: "include",
+                const res = await apiFetch("/auth/me", {
+                    method: "GET",
                 });
 
                 if (!res.ok) {

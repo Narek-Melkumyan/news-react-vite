@@ -3,6 +3,7 @@ import StatCard from "../components/StatCard.jsx";
 import ViewsChart from "../components/ViewsChart.jsx";
 import RecentActivity from "../components/RecentActivity.jsx";
 import { useEffect, useState } from "react";
+import {apiFetch} from "../utils/apiFetch.js";
 
 function Dashboard() {
     const API_URL = import.meta.env.VITE_API_URL;
@@ -13,8 +14,8 @@ function Dashboard() {
     useEffect(() => {
         async function fetchArticles() {
             try {
-                const articlesRes = await fetch(`${API_URL}/articles`, {
-                    credentials: "include",
+                const articlesRes = await apiFetch("/admin/articles", {
+                    method: "GET",
                 });
 
                 if (!articlesRes.ok) {
@@ -40,8 +41,8 @@ function Dashboard() {
     useEffect(() => {
         async function getMe() {
             try {
-                const res = await fetch(`http://localhost:3010/auth/me`, {
-                    credentials: "include",
+                const res = await apiFetch("/auth/me", {
+                    method: "GET",
                 });
 
                 if (!res.ok) {

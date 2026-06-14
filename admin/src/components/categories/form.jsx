@@ -18,72 +18,92 @@ function Form({edit, onOpen}) {
     }, [edit])
 
     async function updateCategory() {
-
-        let data = {
+        const data = {
             id: edit.id,
             name: nameRef.current.value,
             slug: slugRef.current.value,
             description: descRef.current.value,
-            status: statusRef.current.value
+            status: statusRef.current.value,
         };
 
         try {
+            const accessToken =
+                localStorage.getItem("accessToken") ||
+                sessionStorage.getItem("accessToken");
 
             const res = await fetch(
                 `${API_URL}/categories/${edit.id}`,
                 {
                     method: "PUT",
+                    credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
+                        ...(accessToken && {
+                            Authorization: `Bearer ${accessToken}`,
+                        }),
                     },
-                    credentials: "include",
                     body: JSON.stringify({
-                        category: data
+                        category: data,
                     }),
                 }
             );
 
-            const result = await res.json();
-            if (result.success) {
+            const result = await res.json().catch(() => ({}));
 
-                onOpen(false);
-
+            if (!res.ok) {
+                throw new Error(
+                    result.message || "Failed to update category"
+                );
             }
+
+            if (result.success) {
+                onOpen(false);
+            }
+
             console.log(result);
-
         } catch (err) {
-
-            console.log(err);
-
+            console.error(err.message);
         }
     }
-
     async function saveInfo() {
         try {
+            const accessToken =
+                localStorage.getItem("accessToken") ||
+                sessionStorage.getItem("accessToken");
+
             const res = await fetch(
                 `${API_URL}/categories`,
                 {
                     method: "POST",
+                    credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
+                        ...(accessToken && {
+                            Authorization: `Bearer ${accessToken}`,
+                        }),
                     },
-                    credentials: "include",
-
                     body: JSON.stringify({
                         name: nameRef.current.value,
                         slug: slugRef.current.value,
                         description: descRef.current.value,
-                        status: statusRef.current.value
-                    })
+                        status: statusRef.current.value,
+                    }),
                 }
             );
-            const data = await res.json();
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(
+                    data.message || "Failed to create category"
+                );
+            }
+
             console.log(data);
         } catch (err) {
-            console.log(err);
+            console.error(err.message);
         }
     }
-
     return (
         <div>
 

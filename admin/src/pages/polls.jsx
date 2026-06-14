@@ -6,6 +6,9 @@ import PollCard from "../components/polls/pollCard.jsx";
 import { useEffect, useState } from "react";
 
 function Polls() {
+    const accessToken =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
     const [open, setOpen] = useState(false);
     const [polls, setPolls] = useState([]);
     const [selectedPoll, setSelectedPoll] = useState(null);
@@ -19,6 +22,11 @@ function Polls() {
                 "http://localhost:3010/admin/polls/getPolls",
                 {
                     credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
                 }
             );
 
@@ -51,6 +59,11 @@ function Polls() {
                 `http://localhost:3010/admin/polls/getPoll/${pollId}`,
                 {
                     credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
                 }
             );
 
@@ -71,14 +84,23 @@ function Polls() {
 
     const openResultsModal = async (pollId) => {
         try {
+            const accessToken =
+                localStorage.getItem("accessToken") ||
+                sessionStorage.getItem("accessToken");
+
             const res = await fetch(
                 `http://localhost:3010/admin/polls/getPollResults/${pollId}`,
                 {
                     credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
                 }
             );
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
                 throw new Error(
@@ -86,13 +108,13 @@ function Polls() {
                 );
             }
 
+
             setPollResults(data);
             setResultsOpen(true);
         } catch (error) {
             console.error("Results error:", error);
         }
     };
-
     const closeModal = () => {
         setOpen(false);
         setSelectedPoll(null);
@@ -115,8 +137,14 @@ function Polls() {
                 {
                     method: "DELETE",
                     credentials: "include",
+                    headers: accessToken
+                        ? {
+                            Authorization: `Bearer ${accessToken}`,
+                        }
+                        : {},
                 }
             );
+
 
             const data = await res.json();
 

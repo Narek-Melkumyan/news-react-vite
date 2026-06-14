@@ -8,6 +8,9 @@ import {useNavigate} from "react-router-dom";
 
 function ArticleCreate() {
     const API_URL = import.meta.env.VITE_API_URL;
+    const getAccessToken = () =>
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
 
     const navigate = useNavigate();
     const [body, setBody] = useState("");
@@ -39,36 +42,47 @@ function ArticleCreate() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const [categoriesRes, authorsRes, slugsRes] = await Promise.all([
-                    fetch(`${API_URL}/categories`, {
-                        credentials: "include",
-                    }),
-                    fetch(`${API_URL}/articles/getAuthors`, {
-                        credentials: "include",
-                    }),
-                    fetch(`${API_URL}/articles/getSlugs`, {
-                        credentials: "include",
-                    }),
-                ]);
+                const accessToken = getAccessToken();
 
-                const [categoriesData, authorsData, slugsData] = await Promise.all([
-                    categoriesRes.json(),
-                    authorsRes.json(),
-                    slugsRes.json(),
-                ]);
+                const authOptions = {
+                    credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                };
+
+                const [categoriesRes, authorsRes, slugsRes] =
+                    await Promise.all([
+                        fetch(`${API_URL}/categories`, authOptions),
+                        fetch(`${API_URL}/articles/getAuthors`, authOptions),
+                        fetch(`${API_URL}/articles/getSlugs`, authOptions),
+                    ]);
+
+                if (
+                    !categoriesRes.ok ||
+                    !authorsRes.ok ||
+                    !slugsRes.ok
+                ) {
+                    throw new Error("Failed to load article data");
+                }
+
+                const [categoriesData, authorsData, slugsData] =
+                    await Promise.all([
+                        categoriesRes.json(),
+                        authorsRes.json(),
+                        slugsRes.json(),
+                    ]);
 
                 setCategories(categoriesData || []);
                 setAuthors(authorsData.authors || []);
                 setAllSlugs(slugsData.slugs || []);
-
             } catch (err) {
-                console.log(err);
+                console.error(err);
             }
         }
 
         fetchData();
-    }, []);
-
+    }, [API_URL]);
     async function handleSubmit(e) {
         e.preventDefault();
 
@@ -85,6 +99,9 @@ function ArticleCreate() {
             const response = await fetch(`${API_URL}/articles`, {
                 method: "POST",
                 credentials: "include",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
                 body: formData
 
             });

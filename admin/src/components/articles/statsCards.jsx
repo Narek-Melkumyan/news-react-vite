@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 
 function StatsCards() {
     const API_URL = import.meta.env.VITE_API_URL;
+    const accessToken =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
     const [stats, setStats] = useState([
         {
             id: 1,
@@ -41,6 +44,9 @@ function StatsCards() {
 
                 const res = await fetch(`${API_URL}/articles`, {
                     credentials: "include",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
                 });
 
                 const data = await res.json();
