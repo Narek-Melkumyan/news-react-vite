@@ -9,6 +9,8 @@ import {
     votes
 } from "../controller/mainController.js";
 import {Home} from "../controller/rssController.js";
+import {searchRateLimiter} from "../middleware/searchLimitMiddleware.js";
+import {verifyTurnstile} from "../middleware/cloudFlareTurnstileMiddleware.js";
 
 const main = Router();
 
@@ -26,7 +28,7 @@ main.get("/getArticle/:slug", getArticleBySlug);
 main.get("/getVideo/:id", getVideoById);
 main.get("/getAllArticlesById/:id",getAllArticlesByCategoryId)
 main.get("/rss",Home)
-main.get("/search",searchArticles)
+main.get("/search",searchRateLimiter,verifyTurnstile,searchArticles)
 
 
 

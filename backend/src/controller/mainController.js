@@ -520,6 +520,20 @@ export const searchArticles = async (req, res) => {
             });
         }
 
+        if (search.length < 3) {
+            return res.status(400).json({
+                message: "Search must contain at least 3 characters",
+                articles: []
+            });
+        }
+
+        if (search.length > 100) {
+            return res.status(400).json({
+                message: "Search text is too long",
+                articles: []
+            });
+        }
+
         const searchValue = `%${search}%`;
 
         const [articles] = await db.query(
@@ -549,17 +563,17 @@ export const searchArticles = async (req, res) => {
             [searchValue, searchValue, searchValue]
         );
 
-        res.json({
+        return res.json({
             search,
             count: articles.length,
             articles
         });
-
     } catch (error) {
-        console.log(error);
+        console.error("Search error:", error);
 
-        res.status(500).json({
-            message: "Server error"
+        return res.status(500).json({
+            message: "Server error",
+            articles: []
         });
     }
 };

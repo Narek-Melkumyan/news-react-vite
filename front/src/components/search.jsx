@@ -1,61 +1,101 @@
-import {useEffect, useState} from "react";
-import {Link} from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 function Search() {
+
     const [searchText, setSearchText] = useState("");
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [captchaToken, setCaptchaToken] = useState("");
+
+    const abortControllerRef = useRef(null);
+
+    const value = searchText.trim();
+    const isSearchOpen = value.length >= 3;
 
     useEffect(() => {
-        const value = searchText.trim();
+        if (!isSearchOpen) {
+            abortControllerRef.current?.abort();
 
-        if (value.length < 2) {
             setArticles([]);
             setError("");
+            setLoading(false);
+            setCaptchaToken("");
+
             return;
         }
 
-        const timeout = setTimeout(() => {
-            setLoading(true);
-            setError("");
+        if (!captchaToken) {
+            setArticles([]);
+            setLoading(false);
+            return;
+        }
 
-            fetch(
-                `http://localhost:3010/search?q=${encodeURIComponent(value)}`
-            )
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error("Search failed");
+        const timeout = setTimeout(async () => {
+            abortControllerRef.current?.abort();
+
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+
+            try {
+                setLoading(true);
+                setError("");
+
+                const response = await fetch(
+                    `http://localhost:3010/search?q=${encodeURIComponent(value)}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "x-turnstile-token": captchaToken
+                        },
+                        signal: controller.signal
                     }
+                );
 
-                    return response.json();
-                })
-                .then((result) => {
-                    setArticles(result.articles || []);
-                })
-                .catch((error) => {
-                    setError(error.message);
-                    setArticles([]);
-                })
-                .finally(() => {
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.message || "Search failed"
+                    );
+                }
+
+                setArticles(result.articles || []);
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    return;
+                }
+
+                setError(error.message || "Search failed");
+                setArticles([]);
+            } finally {
+                if (abortControllerRef.current === controller) {
                     setLoading(false);
-                });
-
-        }, 400);
+                }
+            }
+        }, 600);
 
         return () => {
             clearTimeout(timeout);
+            abortControllerRef.current?.abort();
         };
-
-    }, [searchText]);
+    }, [value, captchaToken, isSearchOpen]);
 
     const handleInput = (event) => {
         setSearchText(event.target.value);
+        setError("");
     };
 
     const closeSearch = () => {
+        abortControllerRef.current?.abort();
+
         setSearchText("");
         setArticles([]);
+        setError("");
+        setLoading(false);
+        setCaptchaToken("");
     };
 
     return (
@@ -65,14 +105,48 @@ function Search() {
                 type="search"
                 placeholder="Search..."
                 value={searchText}
-                onInput={handleInput}
+                onChange={handleInput}
                 autoComplete="off"
+                maxLength={100}
             />
 
-            {searchText.trim().length >= 2 && (
+            {isSearchOpen && (
                 <div className="search-results">
+                    {!captchaToken && !error && (
+                        <div className="search-captcha">
+                            <Turnstile
+                                siteKey={
+                                    import.meta.env
+                                        .VITE_TURNSTILE_SITE_KEY
+                                }
+                                onSuccess={(token) => {
+                                    setCaptchaToken(token);
+                                    setError("");
+                                }}
+                                onExpire={() => {
+                                    setCaptchaToken("");
+                                    setArticles([]);
+                                }}
+                                onError={() => {
+                                    setCaptchaToken("");
+                                    setArticles([]);
+                                    setError(
+                                        "Captcha verification failed"
+                                    );
+                                }}
+                                options={{
+                                    theme: "light",
+                                    size: "normal"
+                                }}
+                            />
 
-                    {loading && (
+                            <div className="search-message">
+                                Complete the verification to search
+                            </div>
+                        </div>
+                    )}
+
+                    {captchaToken && loading && (
                         <div className="search-message">
                             Searching...
                         </div>
@@ -84,40 +158,37 @@ function Search() {
                         </div>
                     )}
 
-                    {!loading &&
-                        !error &&
-                        articles.length === 0 && (
+                    {captchaToken && !loading && !error && articles.length === 0 && (
                             <div className="search-message">
                                 No articles found
                             </div>
                         )}
 
-                    {!loading && articles.map((article) => (
-                        <Link
-                            key={article.id}
-                            to={`/post/${article.slug}`}
-                            className="search-result-item"
-                            onClick={closeSearch}
-                        >
-                            {article.image && (
-                                <img
-                                    src={article.image}
-                                    alt={article.title}
-                                />
-                            )}
-
-                            <div>
-                                <h6>{article.title}</h6>
-
-                                {article.category_name && (
-                                    <span>
-                                        {article.category_name}
-                                    </span>
+                    {captchaToken && !loading && !error && articles.map((article) => (
+                            <Link
+                                key={article.id}
+                                to={`/post/${article.slug}`}
+                                className="search-result-item"
+                                onClick={closeSearch}
+                            >
+                                {article.image && (
+                                    <img
+                                        src={article.image}
+                                        alt={article.title}
+                                    />
                                 )}
-                            </div>
-                        </Link>
-                    ))}
 
+                                <div>
+                                    <h6>{article.title}</h6>
+
+                                    {article.category_name && (
+                                        <span>
+                                            {article.category_name}
+                                        </span>
+                                    )}
+                                </div>
+                            </Link>
+                        ))}
                 </div>
             )}
         </div>

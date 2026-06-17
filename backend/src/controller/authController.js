@@ -1,12 +1,10 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import db from "../../config/db.js";
 import {createUser, findUserByEmail, findUserById} from "../models/userModel.js";
 import {generateAccessToken, generateRefreshToken} from "../utils/generateTokens.js";
 import {hashToken} from "../utils/hashToken.js";
 import {findRefreshToken, revokeToken, saveRefreshToken} from "../models/refreshTokenModel.js";
 
-const COOKIE_NAME = "admin_token";
 
 const cookieOptions = {
     httpOnly: true,
@@ -164,4 +162,4 @@ export const me = async (req, res) => {
     const user = await findUserById(req.user.id);
     res.json(user);
 };
-;
+
