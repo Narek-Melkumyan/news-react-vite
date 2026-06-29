@@ -1,25 +1,16 @@
+import {apiFetch} from "../../utils/apiFetch.js";
 
 
 function CategoriesTable({data,setEdit,onOpen}) {
-    const accessToken =
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
-    const API_URL = import.meta.env.VITE_API_URL;
 
     async function deleteCategory(id) {
 
         try {
 
-            const res = await fetch(
-                `${API_URL}/categories/${id}`,
+            const res = await apiFetch(
+                `/admin/categories/${id}`,
                 {
                     method: "DELETE",
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
                 }
             );
             if (data.success) {

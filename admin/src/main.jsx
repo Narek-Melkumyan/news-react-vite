@@ -11,6 +11,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "./index.css";
 import "./App.css";
 
+import AuthProvider from "./context/AuthContext.jsx";
+
 import RequireAdmin from "./middleware/RequireAdmin.jsx";
 
 import LoginPage from "./pages/loginPage.jsx";
@@ -22,26 +24,34 @@ import ArticleCreate from "./components/articles/articleCreate.jsx";
 import EditArticle from "./components/articles/editArticle.jsx";
 import Polls from "./pages/polls.jsx";
 import Users from "./pages/users.jsx";
+import GuestRoute from "./router/guestRoute.jsx";
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <Navigate to="/login" replace />,
+        element: <Navigate to="/admin/dashboard" replace />,
     },
+
     {
-        path: "/login",
-        element: <LoginPage />,
+        element: <GuestRoute />,
+        children: [
+            {
+                path: "/login",
+                element: <LoginPage />,
+            },
+        ],
     },
+
     {
-        path: "/admin",
         element: <RequireAdmin />,
         children: [
             {
+                path: "/admin",
                 element: <Layout />,
                 children: [
                     {
                         index: true,
-                        element: <Dashboard />,
+                        element: <Navigate to="/admin/dashboard" replace />,
                     },
                     {
                         path: "dashboard",
@@ -75,10 +85,17 @@ const router = createBrowserRouter([
             },
         ],
     },
+
+    {
+        path: "*",
+        element: <Navigate to="/admin/dashboard" replace />,
+    },
 ]);
 
 createRoot(document.getElementById("root")).render(
     <StrictMode>
-        <RouterProvider router={router} />
+        <AuthProvider>
+            <RouterProvider router={router} />
+        </AuthProvider>
     </StrictMode>
 );

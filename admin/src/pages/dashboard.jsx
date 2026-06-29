@@ -38,28 +38,7 @@ function Dashboard() {
         fetchArticles();
     }, [API_URL]);
 
-    useEffect(() => {
-        async function getMe() {
-            try {
-                const res = await apiFetch("/auth/me", {
-                    method: "GET",
-                });
 
-                if (!res.ok) {
-                    throw new Error("Failed to get user");
-                }
-
-                const result = await res.json();
-
-                setUser(result.user || result);
-            } catch (err) {
-                console.log(err);
-                setUser(null);
-            }
-        }
-
-        getMe();
-    }, [API_URL]);
 
     const fullName = user?.name || "Admin";
     const firstName = fullName.split(" ")[0];

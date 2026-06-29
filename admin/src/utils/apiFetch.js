@@ -1,78 +1,79 @@
-const API_URL = "http://localhost:3010";
+const BASE_URL = "http://localhost:3010";
 
-function getAccessToken() {
-    return (
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken")
-    );
-}
 
-function saveAccessToken(token) {
-    if (localStorage.getItem("accessToken")) {
-        localStorage.setItem("accessToken", token);
-    } else {
-        sessionStorage.setItem("accessToken", token);
-    }
-}
+// src/api/fetchClient.js
 
-function clearAuth() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
+let accessToken = null;
+let refreshPromise = null;
 
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("user");
-}
+export const setAccessToken = (token) => {
+    accessToken = token;
+};
 
-export async function apiFetch(path, options = {}) {
-    async function sendRequest(token) {
-        const headers = new Headers(options.headers || {});
 
-        if (token) {
-            headers.set("Authorization", `Bearer ${token}`);
-        }
+async function baseFetch(url, options = {}) {
+    const isFormData = options.body instanceof FormData;
 
-        if (
-            options.body &&
-            !(options.body instanceof FormData) &&
-            !headers.has("Content-Type")
-        ) {
-            headers.set("Content-Type", "application/json");
-        }
-
-        return fetch(`${API_URL}${path}`, {
-            ...options,
-            credentials: "include",
-            headers,
-        });
-    }
-
-    let accessToken = getAccessToken();
-
-    let response = await sendRequest(accessToken);
-
-    if (response.status !== 401) {
-        return response;
-    }
-
-    const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
+    return fetch(BASE_URL + url, {
+        ...options,
         credentials: "include",
+        headers: {
+            ...(isFormData ? {} : { "Content-Type": "application/json" }),
+            ...(options.headers || {}),
+        },
+    });
+}
+
+// refresh token request (ONLY ONCE AT A TIME)
+async function refreshToken() {
+    if (!refreshPromise) {
+        refreshPromise = baseFetch("/auth/refresh", {
+            method: "POST",
+        })
+            .then(async (res) => {
+                if (!res.ok) throw new Error("Refresh failed");
+                return res.json();
+            })
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+
+    return refreshPromise;
+}
+
+// main request handler with auto refresh
+export async function fetchClient(url, options = {}, _retry = false) {
+    const headers = {
+        ...(options.headers || {}),
+    };
+
+    if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    const response = await baseFetch(url, {
+        ...options,
+        headers,
     });
 
-    const refreshData = await refreshResponse
-        .json()
-        .catch(() => ({}));
+    // If unauthorized → try refresh once
+    if (response.status === 401 && !_retry) {
+        try {
+            const data = await refreshToken();
 
-    if (!refreshResponse.ok || !refreshData.accessToken) {
-        clearAuth();
-        return response;
+            if (data?.accessToken) {
+                setAccessToken(data.accessToken);
+            }
+
+            // retry original request ONCE
+            return fetchClient(url, options, true);
+        } catch {
+            return response;
+        }
     }
-
-    accessToken = refreshData.accessToken;
-
-    saveAccessToken(accessToken);
-
-    response = await sendRequest(accessToken);
 
     return response;
 }
+
+export const apiFetch = fetchClient;

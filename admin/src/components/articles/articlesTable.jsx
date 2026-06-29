@@ -1,73 +1,42 @@
-import {useEffect, useState} from "react";
-import {Link} from "react-router-dom";
-
-
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {apiFetch} from "../../utils/apiFetch.js";
 
 function ArticlesTable() {
-    const getAccessToken = () =>
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
-
-    const API_URL = import.meta.env.VITE_API_URL;
     const [articles, setArticles] = useState([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [categories, setCategories] = useState([]);
 
-
-
     useEffect(() => {
-        async function fetchData() {
+        async function fetchCategories() {
             try {
-                const accessToken = getAccessToken();
+                const res = await apiFetch("/admin/categories", {
+                    method: "GET",
+                });
 
-                const requestOptions = {
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                };
+                const data = await res.json().catch(() => ({}));
 
-                const [articlesRes, categoriesRes] = await Promise.all([
-                    fetch(`${API_URL}/articles`, requestOptions),
-                    fetch(`${API_URL}/categories`, requestOptions),
-                ]);
-
-                const [articlesData, categoriesData] = await Promise.all([
-                    articlesRes.json(),
-                    categoriesRes.json(),
-                ]);
-
-                if (!articlesRes.ok) {
+                if (!res.ok) {
                     throw new Error(
-                        articlesData.message || "Failed to fetch articles"
+                        data.message || "Failed to fetch categories"
                     );
                 }
 
-                if (!categoriesRes.ok) {
-                    throw new Error(
-                        categoriesData.message || "Failed to fetch categories"
-                    );
-                }
-
-                setArticles(articlesData.posts || []);
-                setCategories(categoriesData || []);
+                setCategories(Array.isArray(data) ? data : data.categories || []);
             } catch (err) {
-                console.error(err);
+                console.error("Categories error:", err);
+                setCategories([]);
             }
         }
 
-        fetchData();
+        fetchCategories();
     }, []);
-
-
 
     useEffect(() => {
         async function fetchArticles() {
             try {
-                const accessToken = getAccessToken();
-
                 const params = new URLSearchParams();
 
                 if (search) {
@@ -84,14 +53,10 @@ function ArticlesTable() {
 
                 const query = params.toString();
 
-                const res = await fetch(
-                    `${API_URL}/articles${query ? `?${query}` : ""}`,
+                const res = await apiFetch(
+                    `/admin/articles${query ? `?${query}` : ""}`,
                     {
                         method: "GET",
-                        credentials: "include",
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
                     }
                 );
 
@@ -103,18 +68,15 @@ function ArticlesTable() {
                     );
                 }
 
-                setArticles(data.posts || []);
+                setArticles(data.posts || data.articles || []);
             } catch (err) {
-                console.error(err);
+                console.error("Articles error:", err);
+                setArticles([]);
             }
         }
 
         fetchArticles();
-    }, [
-        search,
-        statusFilter,
-        categoryFilter,
-    ]);
+    }, [search, statusFilter, categoryFilter]);
 
     async function deleteArticle(id) {
         try {
@@ -126,37 +88,25 @@ function ArticlesTable() {
                 return;
             }
 
-            const accessToken = getAccessToken();
+            const res = await apiFetch(`/admin/articles/${id}`, {
+                method: "DELETE",
+            });
 
-            const response = await fetch(
-                `${API_URL}/articles/${id}`,
-                {
-                    method: "DELETE",
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                }
-            );
+            const data = await res.json().catch(() => ({}));
 
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
+            if (!res.ok) {
                 throw new Error(
                     data.message || "Failed to delete article"
                 );
             }
 
             setArticles((previousArticles) =>
-                previousArticles.filter(
-                    (article) => article.id !== id
-                )
+                previousArticles.filter((article) => article.id !== id)
             );
         } catch (error) {
-            console.error(error);
+            console.error("Delete article error:", error);
         }
     }
-
 
     return (
         <div className="card">
@@ -220,7 +170,7 @@ function ArticlesTable() {
                     </tr>
                     </thead>
 
-                    <tbody >
+                    <tbody>
                     {articles.map((article) => (
                         <tr key={article.id}>
                             <td>
@@ -232,9 +182,9 @@ function ArticlesTable() {
                             </td>
 
                             <td>
-                                <span className="cell-title">
-                                    {article.title}
-                                </span>
+                                    <span className="cell-title">
+                                        {article.title}
+                                    </span>
 
                                 <span className="cell-sub">
                                         {Number(article.is_featured) === 1 && (
@@ -249,8 +199,8 @@ function ArticlesTable() {
                                                 fontSize: "10px",
                                             }}
                                         >
-        Breaking
-    </span>
+                                                Breaking
+                                            </span>
                                     )}
 
                                     ID #{article.id}
@@ -287,21 +237,32 @@ function ArticlesTable() {
 
                             <td>
                                     <span className="text-muted-2">
-                                       {new Date(article.created_at).toLocaleDateString("en-US", {
-                                           year: "numeric",
-                                           month: "long",
-                                           day: "numeric",
-                                       })}
+                                        {new Date(article.created_at).toLocaleDateString(
+                                            "en-US",
+                                            {
+                                                year: "numeric",
+                                                month: "long",
+                                                day: "numeric",
+                                            }
+                                        )}
                                     </span>
                             </td>
 
                             <td>
                                 <div className="row-actions">
-                                    <Link to={`/admin/editArticle/${article.id}`} className="btn-act" title="Edit">
+                                    <Link
+                                        to={`/admin/editArticle/${article.id}`}
+                                        className="btn-act"
+                                        title="Edit"
+                                    >
                                         <i className="bi bi-pencil"></i>
                                     </Link>
 
-                                    <button className="btn-act danger" title="Delete" onClick={() => deleteArticle(article.id) }>
+                                    <button
+                                        className="btn-act danger"
+                                        title="Delete"
+                                        onClick={() => deleteArticle(article.id)}
+                                    >
                                         <i className="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -313,10 +274,11 @@ function ArticlesTable() {
             </div>
 
             <div className="table-foot">
-                    <span>
-                        Showing <strong>1-3</strong> of{" "}
-                        <strong>{articles.length}</strong> articles
-                    </span>
+                <span>
+                    Showing <strong>{articles.length ? 1 : 0}</strong>-
+                    <strong>{articles.length}</strong> of{" "}
+                    <strong>{articles.length}</strong> articles
+                </span>
 
                 <ul className="pagination mb-0">
                     <li className="page-item disabled">
@@ -345,6 +307,3 @@ function ArticlesTable() {
 }
 
 export default ArticlesTable;
-
-
-

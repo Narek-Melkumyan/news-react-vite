@@ -3,10 +3,9 @@ import {Router} from 'express';
 import {
     getAllArticlesByCategoryId,
     getArticleBySlug,
-    getDailyQuotes, getInternational, getVideoById, getVideos, homePage,
+    getDailyQuotes, getInternational, getPoll, getVideoById, getVideos, homePage,
     mainIndex, mostRead,
-    pool, regionsAndInterviews, searchArticles,
-    votes
+     regionsAndInterviews, searchArticles, votePoll,
 } from "../controller/mainController.js";
 import {Home} from "../controller/rssController.js";
 import {searchRateLimiter} from "../middleware/searchLimitMiddleware.js";
@@ -22,8 +21,8 @@ main.get("/regionsAndInterviews", regionsAndInterviews );
 main.get("/quotes", getDailyQuotes)
 main.get("/videos",getVideos);
 main.get("/getInternational",getInternational);
-main.get("/poll", pool);
-main.post("/vote", votes);
+main.get("/poll", getPoll);
+main.post("/vote", votePoll);
 main.get("/getArticle/:slug", getArticleBySlug);
 main.get("/getVideo/:id", getVideoById);
 main.get("/getAllArticlesById/:id",getAllArticlesByCategoryId)

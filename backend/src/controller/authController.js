@@ -10,6 +10,7 @@ const cookieOptions = {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 export const register = async (req, res) => {
@@ -121,8 +122,8 @@ export const refresh = async (req, res) => {
     try {
         const token = req.cookies.refresh_token;
         if (!token) return res.status(401).json({ message: "No refresh token" });
-
-        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+        console.log(decoded);
 
         const hashed = await hashToken(token);
         const stored = await findRefreshToken(hashed);
@@ -159,6 +160,7 @@ export const logout = async (req, res) => {
 };
 
 export const me = async (req, res) => {
+
     const user = await findUserById(req.user.id);
     res.json(user);
 };

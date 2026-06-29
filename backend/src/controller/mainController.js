@@ -303,43 +303,112 @@ export const getInternational = async (req, res) => {
 
 }
 
-export const pool=async (req, res) => {
+export const getPoll = async (req, res) => {
     try {
-        const [poll] = await db.query(
-            "SELECT * FROM polls WHERE status='active' LIMIT 1"
+        const [pollRows] = await db.query(
+            `
+            SELECT * 
+            FROM polls 
+            WHERE status = 'active'
+            ORDER BY id DESC 
+            LIMIT 1
+            `
         );
 
+        if (pollRows.length === 0) {
+            return res.json({
+                poll: null,
+                options: [],
+            });
+        }
+
+        const poll = pollRows[0];
+
         const [options] = await db.query(
-            "SELECT * FROM poll_options WHERE poll_id = ?",
-            [poll[0].id]
+            `
+            SELECT 
+                po.id,
+                po.poll_id,
+                po.option_text,
+                COUNT(pv.id) AS votes
+            FROM poll_options po
+            LEFT JOIN poll_votes pv ON pv.option_id = po.id
+            WHERE po.poll_id = ?
+            GROUP BY po.id, po.poll_id, po.option_text
+            ORDER BY po.id ASC
+            `,
+            [poll.id]
         );
 
         res.json({
-            poll: poll[0],
-            options
+            poll,
+            options,
         });
-
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
+        console.error("Get poll error:", error);
+        res.status(500).json({
+            message: "Server error",
+        });
     }
-}
-
-export const votes=async (req, res) => {
+};
+export const votePoll = async (req, res) => {
     try {
         const { option_id } = req.body;
 
-        await db.query(
-            "UPDATE poll_options SET votes = votes + 1 WHERE id = ?",
+        if (!option_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Option id is required",
+            });
+        }
+
+        const [optionRows] = await db.query(
+            "SELECT poll_id FROM poll_options WHERE id = ?",
             [option_id]
         );
 
-        res.json({ success: true });
+        if (optionRows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Option not found",
+            });
+        }
 
-    } catch (err) {
-        console.log(err);
+        const pollId = optionRows[0].poll_id;
+
+        await db.query(
+            "INSERT INTO poll_votes (poll_id, option_id) VALUES (?, ?)",
+            [pollId, option_id]
+        );
+
+        const [results] = await db.query(
+            `
+            SELECT 
+                po.id,
+                po.option_text,
+                COUNT(pv.id) AS votes
+            FROM poll_options po
+            LEFT JOIN poll_votes pv ON pv.option_id = po.id
+            WHERE po.poll_id = ?
+            GROUP BY po.id, po.option_text
+            ORDER BY po.id ASC
+            `,
+            [pollId]
+        );
+
+        res.json({
+            success: true,
+            message: "Vote saved",
+            results,
+        });
+    } catch (error) {
+        console.error("Vote error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
     }
-}
-
+};
 
 export const getArticleBySlug = async (req, res) => {
     try {

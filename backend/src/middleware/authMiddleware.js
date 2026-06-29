@@ -2,18 +2,16 @@ import jwt from "jsonwebtoken";
 
 export const authMiddleware = (req, res, next) => {
     try {
-        const authorization = req.headers.authorization;
+        console.log(req.headers);
+        const token =
+            req.cookies?.accessToken ||
+            req.headers.authorization?.split(" ")[1];
 
-        if (
-            !authorization ||
-            !authorization.startsWith("Bearer ")
-        ) {
+        if (!token) {
             return res.status(401).json({
                 message: "Access token is required",
             });
         }
-
-        const token = authorization.split(" ")[1];
 
         const decoded = jwt.verify(
             token,

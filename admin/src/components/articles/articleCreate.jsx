@@ -2,15 +2,14 @@ import {useEffect, useState} from 'react';
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import {useNavigate} from "react-router-dom";
+import {apiFetch} from "../../utils/apiFetch.js";
 
 
 
 
 function ArticleCreate() {
     const API_URL = import.meta.env.VITE_API_URL;
-    const getAccessToken = () =>
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
+
 
     const navigate = useNavigate();
     const [body, setBody] = useState("");
@@ -42,20 +41,12 @@ function ArticleCreate() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const accessToken = getAccessToken();
-
-                const authOptions = {
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                };
 
                 const [categoriesRes, authorsRes, slugsRes] =
                     await Promise.all([
-                        fetch(`${API_URL}/categories`, authOptions),
-                        fetch(`${API_URL}/articles/getAuthors`, authOptions),
-                        fetch(`${API_URL}/articles/getSlugs`, authOptions),
+                        apiFetch("/admin/categories",{method:"GET"}),
+                        apiFetch("/admin/articles/getAuthors",{method:"GET"}),
+                        apiFetch("/admin/articles/getSlugs",{method:"GET"}),
                     ]);
 
                 if (
@@ -96,15 +87,7 @@ function ArticleCreate() {
         formData.set("body", body);
 
         try {
-            const response = await fetch(`${API_URL}/articles`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
-                body: formData
-
-            });
+            const response = await apiFetch("/admin/articles", {method: "POST", body: formData});
 
             const data = await response.json();
             console.log(data);
@@ -129,16 +112,10 @@ function ArticleCreate() {
         try {
             setAiLoading(true);
 
-            const response = await fetch(`${API_URL}/articles/generateByIA`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
+            const response = await apiFetch("/admin/articles/generateByIA", {method: "POST", body: JSON.stringify({
                     title,
                     shortDesc
-                })
-            });
+                })});
 
             const result = await response.json();
 

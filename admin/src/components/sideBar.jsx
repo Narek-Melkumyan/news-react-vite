@@ -4,11 +4,14 @@ import {
     useOutletContext,
 } from "react-router-dom";
 
-import { useEffect, useState } from "react";
+import {useContext, useEffect, useState} from "react";
+import {apiFetch} from "../utils/apiFetch.js";
+import {AuthContext} from "../context/authContextValue.jsx";
 
 function SideBar() {
     const API_URL = import.meta.env.VITE_API_URL;
     const navigate = useNavigate();
+    const { logout } = useContext(AuthContext);
 
     const { admin } = useOutletContext();
     const [articlesCount, setArticlesCount] = useState(0);
@@ -19,28 +22,14 @@ function SideBar() {
 
         async function fetchArticles() {
             try {
-                const accessToken =
-                    localStorage.getItem("accessToken") ||
-                    sessionStorage.getItem("accessToken");
-
-                const response = await fetch(`${API_URL}/articles`, {
+                const response = await apiFetch("/admin/articles",{
                     method: "GET",
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
-                });
+                })
 
-                const data = await response
-                    .json()
-                    .catch(() => ({}));
+                const data = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    throw new Error(
-                        data.message || "Failed to fetch articles"
-                    );
+                    throw new Error(data.message || "Failed to fetch articles");
                 }
 
                 const posts = Array.isArray(data)
@@ -58,7 +47,6 @@ function SideBar() {
                 }
             }
         }
-
         fetchArticles();
 
         return () => {
@@ -70,22 +58,15 @@ function SideBar() {
         setLoggingOut(true);
 
         try {
-            await fetch(`http://localhost:3010/auth/logout`, {
-                method: "POST",
-                credentials: "include",
-            });
-        } catch (error) {
-            console.error("Logout error:", error);
-        } finally {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
-
-            sessionStorage.removeItem("accessToken");
-            sessionStorage.removeItem("user");
+            await logout();
 
             navigate("/login", {
                 replace: true,
             });
+        } catch (error) {
+            console.error("Logout error:", error);
+        } finally {
+            setLoggingOut(false);
         }
     }
 

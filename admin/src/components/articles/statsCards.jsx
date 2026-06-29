@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
+import {apiFetch} from "../../utils/apiFetch.js";
 
 function StatsCards() {
     const API_URL = import.meta.env.VITE_API_URL;
-    const accessToken =
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
+
     const [stats, setStats] = useState([
         {
             id: 1,
@@ -35,102 +34,85 @@ function StatsCards() {
             label: "Scheduled",
         },
     ]);
+    async function fetchPosts() {
+        try {
+            const res = await apiFetch("/admin/articles", {
+                method: "GET",
+            })
 
-    useEffect(() => {
+            const data = await res.json();
 
-        async function fetchPosts() {
-
-            try {
-
-                const res = await fetch(`${API_URL}/articles`, {
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                });
-
-                const data = await res.json();
-
-                const posts = data.posts;
-
-                const totalPosts = posts.length;
-
-                const publishedPosts = posts.filter(
-                    (item) => item.status === "published"
-                ).length;
-
-                const draftPosts = posts.filter(
-                    (item) => item.status === "draft"
-                ).length;
-
-                const scheduledPosts = posts.filter(
-                    (item) => item.status === "scheduled"
-                ).length;
-
-                setStats([
-                    {
-                        id: 1,
-                        icon: "bi-collection",
-                        color: "brand",
-                        value: totalPosts,
-                        label: "Total articles",
-                    },
-                    {
-                        id: 2,
-                        icon: "bi-check2-circle",
-                        color: "success",
-                        value: publishedPosts,
-                        label: "Published",
-                    },
-                    {
-                        id: 3,
-                        icon: "bi-pencil-square",
-                        color: "warning",
-                        value: draftPosts,
-                        label: "Drafts",
-                    },
-                    {
-                        id: 4,
-                        icon: "bi-clock-history",
-                        color: "info",
-                        value: scheduledPosts,
-                        label: "Scheduled",
-                    },
-                ]);
-
-            } catch (err) {
-
-                console.log(err);
-
+            if (!res.ok) {
+                console.log("Request failed:", data.message);
+                return;
             }
+
+            const posts = Array.isArray(data.posts) ? data.posts : [];
+
+            const totalPosts = posts.length;
+
+            const publishedPosts = posts.filter(
+                (item) => item.status === "published"
+            ).length;
+
+            const draftPosts = posts.filter(
+                (item) => item.status === "draft"
+            ).length;
+
+            const scheduledPosts = posts.filter(
+                (item) => item.status === "scheduled"
+            ).length;
+
+            setStats([
+                {
+                    id: 1,
+                    icon: "bi-collection",
+                    color: "brand",
+                    value: totalPosts,
+                    label: "Total articles",
+                },
+                {
+                    id: 2,
+                    icon: "bi-check2-circle",
+                    color: "success",
+                    value: publishedPosts,
+                    label: "Published",
+                },
+                {
+                    id: 3,
+                    icon: "bi-pencil-square",
+                    color: "warning",
+                    value: draftPosts,
+                    label: "Drafts",
+                },
+                {
+                    id: 4,
+                    icon: "bi-clock-history",
+                    color: "info",
+                    value: scheduledPosts,
+                    label: "Scheduled",
+                },
+            ]);
+        } catch (err) {
+            console.log(err);
         }
-
+    }
+    useEffect(() => {
         fetchPosts();
-
-    }, []);
+    }, [API_URL]);
 
     return (
         <div className="row g-3 mb-3">
-
             {stats.map((item) => (
-
-                <div
-                    className="col-6 col-md-3"
-                    key={item.id}
-                >
-
+                <div className="col-6 col-md-3" key={item.id}>
                     <div className="stat-card">
-
                         <div className="stat-card-top">
-
                             <div className={`stat-icon ${item.color}`}>
                                 <i className={`bi ${item.icon}`}></i>
                             </div>
-
                         </div>
 
                         <div>
-
                             <div className="stat-value">
                                 {item.value}
                             </div>
@@ -138,15 +120,10 @@ function StatsCards() {
                             <div className="stat-label">
                                 {item.label}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             ))}
-
         </div>
     );
 }

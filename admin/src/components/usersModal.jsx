@@ -1,3 +1,5 @@
+import {apiFetch} from "../utils/apiFetch.js";
+
 function UsersModal({ close,refreshUsers }) {
     async function register(e) {
         e.preventDefault();
@@ -11,17 +13,8 @@ function UsersModal({ close,refreshUsers }) {
             const role = formData.get("role");
             const status = formData.get("status");
 
-            const accessToken =
-                localStorage.getItem("accessToken") ||
-                sessionStorage.getItem("accessToken");
-
-            const res = await fetch("http://localhost:3010/auth/register", {
+            const res = await apiFetch("/auth/register", {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                },
                 body: JSON.stringify({
                     name,
                     email,

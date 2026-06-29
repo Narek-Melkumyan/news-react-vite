@@ -2,24 +2,17 @@ import {useEffect, useState} from "react";
 import UsersModal from "../components/usersModal.jsx";
 import UserCard from "../components/userCard.jsx";
 import UsersStatCard from "../components/usersStatCard.jsx";
+import {apiFetch} from "../utils/apiFetch.js";
 
 function Users() {
-    const accessToken =
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
     const [modal, setModal] = useState(false);
     const [userData, setUserData] = useState([]);
     async function getUsers() {
         try {
-            const res = await fetch(
-                "http://localhost:3010/admin/users/getUsers",
+            const res = await apiFetch(
+                "/admin/users/getUsers",
                 {
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
+                    method: "GET",
                 }
             );
 

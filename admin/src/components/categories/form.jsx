@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
+import {apiFetch} from "../../utils/apiFetch.js";
 
 function Form({edit, onOpen}) {
-    const API_URL = import.meta.env.VITE_API_URL;
 
     const nameRef = useRef(null);
     const slugRef = useRef(null)
@@ -27,21 +27,10 @@ function Form({edit, onOpen}) {
         };
 
         try {
-            const accessToken =
-                localStorage.getItem("accessToken") ||
-                sessionStorage.getItem("accessToken");
-
-            const res = await fetch(
-                `${API_URL}/categories/${edit.id}`,
+            const res = await apiFetch(
+                `admin/categories/${edit.id}`,
                 {
                     method: "PUT",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(accessToken && {
-                            Authorization: `Bearer ${accessToken}`,
-                        }),
-                    },
                     body: JSON.stringify({
                         category: data,
                     }),
@@ -67,21 +56,12 @@ function Form({edit, onOpen}) {
     }
     async function saveInfo() {
         try {
-            const accessToken =
-                localStorage.getItem("accessToken") ||
-                sessionStorage.getItem("accessToken");
 
-            const res = await fetch(
-                `${API_URL}/categories`,
+
+            const res = await apiFetch(
+                `/admin/categories`,
                 {
                     method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(accessToken && {
-                            Authorization: `Bearer ${accessToken}`,
-                        }),
-                    },
                     body: JSON.stringify({
                         name: nameRef.current.value,
                         slug: slugRef.current.value,

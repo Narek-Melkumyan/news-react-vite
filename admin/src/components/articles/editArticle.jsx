@@ -2,12 +2,9 @@ import {useEffect, useState} from 'react';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import {apiFetch} from "../../utils/apiFetch.js";
 
 function EditArticle() {
-    const getAccessToken = () =>
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
-
     const API_URL = import.meta.env.VITE_API_URL;
     const { id } = useParams();
     const navigate = useNavigate();
@@ -49,18 +46,11 @@ function EditArticle() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const accessToken = getAccessToken();
 
-                const requestOptions = {
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                };
 
                 const [categoriesRes, authorsRes] = await Promise.all([
-                    fetch(`${API_URL}/categories`, requestOptions),
-                    fetch(`${API_URL}/articles/getAuthors`, requestOptions),
+                    apiFetch("/admin/categories",{method: "GET"}),
+                    apiFetch("/admin/articles/getAuthors", {method: "GET"}),
                 ]);
 
                 const [categoriesData, authorsData] = await Promise.all([
@@ -97,17 +87,8 @@ function EditArticle() {
     useEffect(() => {
         async function getArticle() {
             try {
-                const accessToken = getAccessToken();
 
-                const response = await fetch(
-                    `${API_URL}/articles/${id}`,
-                    {
-                        credentials: "include",
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    }
-                );
+                const response = await apiFetch(`/admin/articles/${id}`,{method:"GET"});
 
                 const data = await response.json().catch(() => ({}));
 
@@ -171,18 +152,9 @@ function EditArticle() {
         formData.set("seoKey", seoKey);
 
         try {
-            const accessToken = getAccessToken();
 
-            const response = await fetch(
-                `${API_URL}/articles/${id}`,
-                {
-                    method: "PUT",
-                    credentials: "include",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                    body: formData,
-                }
+            const response = await apiFetch(`/admin/articles/${id}`,
+                {method: "PUT",body: formData},
             );
 
             const data = await response.json().catch(() => ({}));
@@ -207,12 +179,8 @@ function EditArticle() {
         try {
             setAiLoading(true);
 
-            const response = await fetch(`${API_URL}/articles/generateByIA`, {
+            const response = await apiFetch(`/admin/articles/generateByIA`, {
                 method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                     title,
                     shortDesc,

@@ -4,11 +4,9 @@ import PollsModal from "../components/polls/pollsModal.jsx";
 import PollResultsModal from "../components/polls/pollResultsModal.jsx";
 import PollCard from "../components/polls/pollCard.jsx";
 import { useEffect, useState } from "react";
+import {apiFetch} from "../utils/apiFetch.js";
 
 function Polls() {
-    const accessToken =
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
     const [open, setOpen] = useState(false);
     const [polls, setPolls] = useState([]);
     const [selectedPoll, setSelectedPoll] = useState(null);
@@ -18,16 +16,8 @@ function Polls() {
 
     const getPolls = async () => {
         try {
-            const res = await fetch(
-                "http://localhost:3010/admin/polls/getPolls",
-                {
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
-                }
+            const res = await apiFetch(
+                "/admin/polls/getPolls",{method:"GET"}
             );
 
             const data = await res.json();
@@ -55,15 +45,10 @@ function Polls() {
 
     const openEditModal = async (pollId) => {
         try {
-            const res = await fetch(
-                `http://localhost:3010/admin/polls/getPoll/${pollId}`,
+            const res = await apiFetch(
+                `/admin/polls/getPoll/${pollId}`,
                 {
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
+                    method: "GET",
                 }
             );
 
@@ -84,19 +69,11 @@ function Polls() {
 
     const openResultsModal = async (pollId) => {
         try {
-            const accessToken =
-                localStorage.getItem("accessToken") ||
-                sessionStorage.getItem("accessToken");
 
-            const res = await fetch(
-                `http://localhost:3010/admin/polls/getPollResults/${pollId}`,
+            const res = await apiFetch(
+                `/admin/polls/getPollResults/${pollId}`,
                 {
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
+                    method: "GET",
                 }
             );
 
@@ -132,16 +109,10 @@ function Polls() {
 
     const deletePoll = async (pollId) => {
         try {
-            const res = await fetch(
-                `http://localhost:3010/admin/polls/deletePoll/${pollId}`,
+            const res = await apiFetch(
+                `/admin/polls/deletePoll/${pollId}`,
                 {
                     method: "DELETE",
-                    credentials: "include",
-                    headers: accessToken
-                        ? {
-                            Authorization: `Bearer ${accessToken}`,
-                        }
-                        : {},
                 }
             );
 

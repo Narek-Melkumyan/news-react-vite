@@ -4,6 +4,7 @@ import CategoriesTable from "../components/categories/CategoriesTable.jsx";
 import Modal from "../components/Modal.jsx";
 import {useEffect, useState} from "react";
 import Form from "../components/categories/form.jsx";
+import {apiFetch} from "../utils/apiFetch.js";
 
 function Categories() {
     const API_URL = import.meta.env.VITE_API_URL;
@@ -15,20 +16,12 @@ const [modal, setModal] = useState(false);
     useEffect(() => {
         async function fetchCategories() {
             try {
-                const accessToken =
-                    localStorage.getItem("accessToken") ||
-                    sessionStorage.getItem("accessToken");
 
-                const response = await fetch(
-                    `${API_URL}/categories`,
+
+                const response = await apiFetch(
+                    `/admin/categories`,
                     {
                         method: "GET",
-                        credentials: "include",
-                        headers: accessToken
-                            ? {
-                                Authorization: `Bearer ${accessToken}`,
-                            }
-                            : {},
                     }
                 );
 

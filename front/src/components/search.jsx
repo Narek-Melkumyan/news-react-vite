@@ -75,7 +75,7 @@ function Search() {
                     setLoading(false);
                 }
             }
-        }, 600);
+        }, 1000);
 
         return () => {
             clearTimeout(timeout);
